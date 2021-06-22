@@ -77,6 +77,10 @@ using the runc checkpoint command.`,
 			Name:  "no-pivot",
 			Usage: "do not use pivot root to jail process inside rootfs.  This should be used whenever the rootfs is on top of a ramdisk",
 		},
+		cli.BoolFlag{
+			Name:  "lazy-pages",
+			Usage: "restore with lazy pages",
+		},
 		cli.StringSliceFlag{
 			Name:  "empty-ns",
 			Usage: "create a namespace, but don't restore its properies",
@@ -137,6 +141,9 @@ func restoreContainer(context *cli.Context, spec *specs.Spec, config *configs.Co
 	}
 	options := criuOptions(context)
 
+	// default lazy-pazges
+	options.LazyPages = true
+
 	status, err := container.Status()
 	if err != nil {
 		logrus.Error(err)
@@ -196,5 +203,6 @@ func criuOptions(context *cli.Context) *libcontainer.CriuOpts {
 		ExternalUnixConnections: context.Bool("ext-unix-sk"),
 		ShellJob:                context.Bool("shell-job"),
 		FileLocks:               context.Bool("file-locks"),
+		LazyPages:               context.Bool("lazy-pages"),
 	}
 }

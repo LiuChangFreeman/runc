@@ -3,3 +3,7 @@ vendor/pkg
 Godeps/_workspace/src/github.com/opencontainers/runc
 man/man8
 release
+/.idea
+/Godeps/
+.idea
+Godeps

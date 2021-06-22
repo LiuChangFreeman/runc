@@ -4,20 +4,25 @@ package libcontainer
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/go-redis/redis/v8"
 	"github.com/golang/protobuf/proto"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/configs"
@@ -601,6 +606,7 @@ func (c *linuxContainer) Checkpoint(criuOpts *CriuOpts) error {
 		TcpEstablished: proto.Bool(criuOpts.TcpEstablished),
 		ExtUnixSk:      proto.Bool(criuOpts.ExternalUnixConnections),
 		FileLocks:      proto.Bool(criuOpts.FileLocks),
+		LazyPages:      proto.Bool(criuOpts.LazyPages),
 		EmptyNs:        proto.Uint32(criuOpts.EmptyNs),
 	}
 
@@ -698,6 +704,7 @@ func (c *linuxContainer) restoreNetwork(req *criurpc.CriuReq, criuOpts *CriuOpts
 }
 
 func (c *linuxContainer) Restore(process *Process, criuOpts *CriuOpts) error {
+
 	c.m.Lock()
 	defer c.m.Unlock()
 	if err := c.checkCriuVersion("1.5.2"); err != nil {
@@ -761,6 +768,7 @@ func (c *linuxContainer) Restore(process *Process, criuOpts *CriuOpts) error {
 			TcpEstablished: proto.Bool(criuOpts.TcpEstablished),
 			FileLocks:      proto.Bool(criuOpts.FileLocks),
 			EmptyNs:        proto.Uint32(criuOpts.EmptyNs),
+			LazyPages:      proto.Bool(criuOpts.LazyPages),
 		},
 	}
 
@@ -1004,6 +1012,7 @@ func unlockNetwork(config *configs.Config) error {
 }
 
 func (c *linuxContainer) criuNotifications(resp *criurpc.CriuResp, process *Process, opts *CriuOpts, fds []string) error {
+
 	notify := resp.GetNotify()
 	if notify == nil {
 		return fmt.Errorf("invalid response: %s", resp.String())
@@ -1031,6 +1040,7 @@ func (c *linuxContainer) criuNotifications(resp *criurpc.CriuResp, process *Proc
 				Pid:     int(notify.GetPid()),
 				Root:    c.config.Rootfs,
 			}
+
 			for i, hook := range c.config.Hooks.Prestart {
 				if err := hook.Run(s); err != nil {
 					return newSystemErrorWithCausef(err, "running prestart hook %d", i)
@@ -1059,6 +1069,33 @@ func (c *linuxContainer) criuNotifications(resp *criurpc.CriuResp, process *Proc
 			if !os.IsNotExist(err) {
 				logrus.Error(err)
 			}
+		}
+	case notify.GetScript() == "post-setup-namespaces":
+		redisClient := redis.NewClient(&redis.Options{
+			Addr: "0.0.0.0:6379",
+		})
+		defer redisClient.Close()
+
+		portStr, _ := redisClient.Get(context.Background(), c.id).Result()
+		port, _ := strconv.Atoi(portStr)
+
+		address := net.TCPAddr{
+			IP:   net.ParseIP("0.0.0.0"),
+			Port: port,
+		}
+		watchDog, err := net.ListenTCP("tcp", &address)
+		if err != nil {
+			log.Fatal("fail to listen to ", address, err)
+		}
+		defer watchDog.Close()
+
+		for {
+			conn, err := watchDog.AcceptTCP()
+			if err != nil {
+				log.Fatal(err)
+			}
+			conn.Close()
+			break
 		}
 	}
 	return nil

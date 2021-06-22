@@ -93,7 +93,7 @@ localintegration: all
 	bats -t tests/integration${TESTFLAGS}
 
 install:
-	install -D -m0755 runc $(BINDIR)/runc
+	install -D -m0755 runc /usr/local/bin/docker-runc
 
 install-bash:
 	install -D -m0644 contrib/completions/bash/runc $(PREFIX)/share/bash-completion/completions/runc
