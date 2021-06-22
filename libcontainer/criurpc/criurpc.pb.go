@@ -329,6 +329,7 @@ type CriuOpts struct {
 	External          []string            `protobuf:"bytes,37,rep,name=external" json:"external,omitempty"`
 	EmptyNs           *uint32             `protobuf:"varint,38,opt,name=empty_ns" json:"empty_ns,omitempty"`
 	NoSeccomp         *bool               `protobuf:"varint,39,opt,name=no_seccomp" json:"no_seccomp,omitempty"`
+	LazyPages          *bool              `protobuf:"varint,48,opt,name=lazy_pages" json:"lazy_pages,omitempty"`
 	XXX_unrecognized  []byte              `json:"-"`
 }
 
@@ -371,6 +372,13 @@ func (m *CriuOpts) GetExtUnixSk() bool {
 func (m *CriuOpts) GetTcpEstablished() bool {
 	if m != nil && m.TcpEstablished != nil {
 		return *m.TcpEstablished
+	}
+	return false
+}
+
+func (m *CriuOpts) GetLazyPages() bool {
+	if m != nil && m.LazyPages != nil {
+		return *m.LazyPages
 	}
 	return false
 }

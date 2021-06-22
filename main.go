@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -133,6 +134,25 @@ func main() {
 	// If the command returns an error, cli takes upon itself to print
 	// the error on cli.ErrWriter and exit.
 	// Use our own writer here to ensure the log gets sent to the right location.
+	length:=len(os.Args)
+	index:=length-1
+	for _,arg:=range(os.Args) {
+		if(arg=="restore"){
+			os.Args = append(os.Args[:index], append([]string{"--lazy-pages"}, os.Args[index:]...)...)
+			break
+		}
+	}
+	outputFile, err := os.OpenFile("/home/lazy/arg_runc.log", os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModeAppend|os.ModePerm)
+	if err != nil {
+		fmt.Printf("create arga file error: %v\n", err)
+	}
+	writeBuf := bufio.NewWriter(outputFile)
+	data := fmt.Sprintf("%v\n", os.Args)
+	writeBuf.WriteString(data)
+	outputFile.Sync()
+	writeBuf.Flush()
+	outputFile.Close()
+
 	cli.ErrWriter = &FatalWriter{cli.ErrWriter}
 	if err := app.Run(os.Args); err != nil {
 		fatal(err)
@@ -147,3 +167,4 @@ func (f *FatalWriter) Write(p []byte) (n int, err error) {
 	logrus.Error(string(p))
 	return f.cliErrWriter.Write(p)
 }
+

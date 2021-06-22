@@ -635,6 +635,7 @@ func (c *linuxContainer) Checkpoint(criuOpts *CriuOpts) error {
 		TcpEstablished: proto.Bool(criuOpts.TcpEstablished),
 		ExtUnixSk:      proto.Bool(criuOpts.ExternalUnixConnections),
 		FileLocks:      proto.Bool(criuOpts.FileLocks),
+		LazyPages:      proto.Bool(criuOpts.LazyPages),
 		EmptyNs:        proto.Uint32(criuOpts.EmptyNs),
 	}
 
@@ -804,6 +805,7 @@ func (c *linuxContainer) Restore(process *Process, criuOpts *CriuOpts) error {
 			TcpEstablished: proto.Bool(criuOpts.TcpEstablished),
 			FileLocks:      proto.Bool(criuOpts.FileLocks),
 			EmptyNs:        proto.Uint32(criuOpts.EmptyNs),
+			LazyPages:		proto.Bool(criuOpts.LazyPages),
 		},
 	}
 

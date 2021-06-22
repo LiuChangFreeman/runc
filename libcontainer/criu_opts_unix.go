@@ -30,6 +30,7 @@ type CriuOpts struct {
 	ExternalUnixConnections bool               // allow external unix connections
 	ShellJob                bool               // allow to dump and restore shell jobs
 	FileLocks               bool               // handle file locks, for safety
+	LazyPages               bool               // restore use lazy pages
 	PageServer              CriuPageServerInfo // allow to dump to criu page server
 	VethPairs               []VethPairName     // pass the veth to criu when restore
 	ManageCgroupsMode       cgMode             // dump or restore cgroup mode
