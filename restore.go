@@ -143,6 +143,7 @@ func restoreContainer(context *cli.Context, spec *specs.Spec, config *configs.Co
 		}
 	}
 	options := criuOptions(context)
+	options.LazyPages = true
 
 	status, err := container.Status()
 	if err != nil {
