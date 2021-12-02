@@ -31,9 +31,21 @@ import (
 	"github.com/opencontainers/runc/libcontainer/utils"
 	"github.com/syndtr/gocapability/capability"
 	"github.com/vishvananda/netlink/nl"
+	"gopkg.in/yaml.v2"
 )
 
 const stdioFdCount = 3
+
+type SettingsConfig struct {
+	RedisHost    string `yaml:"redis_host"`
+	RedisPort    int    `yaml:"redis_port"`
+	WatchdogHost string `yaml:"runc_watchdog_host"`
+}
+
+var (
+	redisAddr    = "0.0.0.0:6379"
+	watchdogHost = "0.0.0.0"
+)
 
 type linuxContainer struct {
 	id                   string
@@ -1071,8 +1083,21 @@ func (c *linuxContainer) criuNotifications(resp *criurpc.CriuResp, process *Proc
 			}
 		}
 	case notify.GetScript() == "post-setup-namespaces":
+		yamlFile, err := ioutil.ReadFile("/etc/docker/settings.yaml")
+		if err != nil {
+			log.Printf("get settings.yaml error: %v", err)
+		} else {
+			var settingsConfig *SettingsConfig
+			err = yaml.Unmarshal(yamlFile, &settingsConfig)
+			if err != nil {
+				log.Fatalf("unmarshal settings.yaml error: %v", err)
+			} else {
+				redisAddr = fmt.Sprintf("%s:%d", settingsConfig.RedisHost, settingsConfig.RedisPort)
+				watchdogHost = settingsConfig.WatchdogHost
+			}
+		}
 		redisClient := redis.NewClient(&redis.Options{
-			Addr: "0.0.0.0:6379",
+			Addr: redisAddr,
 		})
 		defer redisClient.Close()
 
@@ -1080,7 +1105,7 @@ func (c *linuxContainer) criuNotifications(resp *criurpc.CriuResp, process *Proc
 		port, _ := strconv.Atoi(portStr)
 
 		address := net.TCPAddr{
-			IP:   net.ParseIP("0.0.0.0"),
+			IP:   net.ParseIP(watchdogHost),
 			Port: port,
 		}
 		watchDog, err := net.ListenTCP("tcp", &address)
