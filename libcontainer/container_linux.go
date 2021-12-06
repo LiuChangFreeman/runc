@@ -1115,11 +1115,7 @@ func (c *linuxContainer) criuNotifications(resp *criurpc.CriuResp, process *Proc
 		defer watchDog.Close()
 
 		for {
-			conn, err := watchDog.AcceptTCP()
-			if err != nil {
-				log.Fatal(err)
-			}
-			conn.Close()
+			_, _ = watchDog.AcceptTCP()
 			break
 		}
 	}
